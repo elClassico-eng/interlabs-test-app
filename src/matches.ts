@@ -61,6 +61,13 @@ export function matchesFilter(match: Match, filter: MatchFilter): boolean {
   }
 }
 
+// Поиск по названию клуба хозяев или гостей, без учёта регистра.
+export function matchesQuery(match: Match, query: string): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  return [match.home.name, match.away.name].some((name) => name.toLowerCase().includes(q));
+}
+
 export function statusLabel(match: Match): string {
   switch (match.status) {
     case 'scheduled':

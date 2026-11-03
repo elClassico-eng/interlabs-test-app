@@ -1,9 +1,24 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { MatchCard } from '../components/MatchCard';
 import { UpdatedAgo } from '../components/UpdatedAgo';
 import { useFavorites } from '../hooks/useFavorites';
-import { fetchMatches, FILTERS, Match, MatchFilter, matchesFilter } from '../matches';
+import {
+  fetchMatches,
+  FILTERS,
+  Match,
+  MatchFilter,
+  matchesFilter,
+  matchesQuery,
+} from '../matches';
 
 // Экран «Матчи тура» — задание в README.md, часть 1.
 export function MatchesScreen() {
@@ -13,6 +28,7 @@ export function MatchesScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
   const [filter, setFilter] = useState<MatchFilter>('all');
+  const [query, setQuery] = useState('');
   const { favorites, isFavorite, toggle } = useFavorites();
 
   const load = useCallback(async (mode: 'initial' | 'refresh') => {
@@ -36,9 +52,11 @@ export function MatchesScreen() {
 
   const refresh = () => load('refresh');
 
-  const visibleMatches = (matches ?? []).filter((match) => matchesFilter(match, filter));
+  const visibleMatches = (matches ?? []).filter(
+    (match) => matchesFilter(match, filter) && matchesQuery(match, query),
+  );
   const emptyText =
-    matches?.length === 0 ? 'В этом туре пока нет матчей' : 'Нет матчей в этой категории';
+    matches?.length === 0 ? 'В этом туре пока нет матчей' : 'Ничего не найдено';
 
   // Первая загрузка: данных ещё нет.
   if (loading) {
@@ -73,6 +91,16 @@ export function MatchesScreen() {
       {updatedAt && <UpdatedAgo since={updatedAt} />}
       {/* Ошибка при обновлении: старые данные оставляем на экране. */}
       {error && <Text style={styles.inlineError}>Не удалось обновить: {error}</Text>}
+
+      <TextInput
+        value={query}
+        onChangeText={setQuery}
+        placeholder="Поиск по клубу"
+        placeholderTextColor="#9ca3af"
+        style={styles.search}
+        autoCorrect={false}
+        clearButtonMode="while-editing"
+      />
 
       <View style={styles.filters}>
         {FILTERS.map(({ value, label }) => {
@@ -131,6 +159,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: '700',
+  },
+  search: {
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 15,
   },
   filters: {
     flexDirection: 'row',
