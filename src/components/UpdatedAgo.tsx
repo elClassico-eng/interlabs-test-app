@@ -8,13 +8,17 @@ type Props = {
 
 // Подпись «Обновлено N сек назад».
 export function UpdatedAgo({ since }: Props) {
-  const [seconds, setSeconds] = useState(0);
+  // Храним текущее время, а секунды вычисляем из since — так подпись
+  // автоматически сбрасывается, когда приходит новый since.
+  const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
-    setInterval(() => {
-      setSeconds(seconds + 1);
-    }, 1000);
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
   }, []);
+
+  // max(0, …): сразу после обновления now может быть чуть меньше since.
+  const seconds = Math.max(0, Math.floor((now - since.getTime()) / 1000));
 
   return <Text style={styles.text}>Обновлено {seconds} сек назад</Text>;
 }
