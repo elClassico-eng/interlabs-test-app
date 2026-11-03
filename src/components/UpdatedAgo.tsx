@@ -20,7 +20,15 @@ export function UpdatedAgo({ since }: Props) {
   // max(0, …): сразу после обновления now может быть чуть меньше since.
   const seconds = Math.max(0, Math.floor((now - since.getTime()) / 1000));
 
-  return <Text style={styles.text}>Обновлено {seconds} сек назад</Text>;
+  return <Text style={styles.text}>Обновлено {formatAgo(seconds)} назад</Text>;
+}
+
+// 45 → «45 сек», 155 → «2 мин 35 сек», 120 → «2 мин»
+export function formatAgo(totalSeconds: number): string {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  if (minutes === 0) return `${seconds} сек`;
+  return seconds === 0 ? `${minutes} мин` : `${minutes} мин ${seconds} сек`;
 }
 
 const styles = StyleSheet.create({
