@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { MatchCard } from '../components/MatchCard';
 import { UpdatedAgo } from '../components/UpdatedAgo';
-import { fetchMatches, Match } from '../matches';
+import { useFavorites } from '../hooks/useFavorites';
+import { fetchMatches, FILTERS, Match, MatchFilter, matchesFilter } from '../matches';
 
 // Экран «Матчи тура» — задание в README.md, часть 1.
 export function MatchesScreen() {
@@ -11,6 +12,8 @@ export function MatchesScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
+  const [filter, setFilter] = useState<MatchFilter>('all');
+  const { favorites, isFavorite, toggle } = useFavorites();
 
   const load = useCallback(async (mode: 'initial' | 'refresh') => {
     if (mode === 'refresh') setRefreshing(true);
@@ -32,6 +35,10 @@ export function MatchesScreen() {
   }, [load]);
 
   const refresh = () => load('refresh');
+
+  const visibleMatches = (matches ?? []).filter((match) => matchesFilter(match, filter));
+  const emptyText =
+    matches?.length === 0 ? 'В этом туре пока нет матчей' : 'Нет матчей в этой категории';
 
   // Первая загрузка: данных ещё нет.
   if (loading) {
@@ -67,14 +74,40 @@ export function MatchesScreen() {
       {/* Ошибка при обновлении: старые данные оставляем на экране. */}
       {error && <Text style={styles.inlineError}>Не удалось обновить: {error}</Text>}
 
+      <View style={styles.filters}>
+        {FILTERS.map(({ value, label }) => {
+          const selected = value === filter;
+          return (
+            <Pressable
+              key={value}
+              onPress={() => setFilter(value)}
+              style={[styles.chip, selected && styles.chipSelected]}
+              accessibilityRole="button"
+              accessibilityState={{ selected }}
+            >
+              <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{label}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
       <FlatList
-        data={matches ?? []}
+        data={visibleMatches}
+        // FlatList перерисовывает строки только при смене data;
+        // extraData говорит ему, что строки зависят и от избранного.
+        extraData={favorites}
         keyExtractor={(match) => match.id}
-        renderItem={({ item }) => <MatchCard match={item} />}
+        renderItem={({ item }) => (
+          <MatchCard
+            match={item}
+            favorite={isFavorite(item.id)}
+            onToggleFavorite={() => toggle(item.id)}
+          />
+        )}
         refreshing={refreshing}
         onRefresh={refresh}
         contentContainerStyle={styles.list}
-        ListEmptyComponent={<Text style={[styles.muted, styles.empty]}>В этом туре пока нет матчей</Text>}
+        ListEmptyComponent={<Text style={[styles.muted, styles.empty]}>{emptyText}</Text>}
       />
     </View>
   );
@@ -98,6 +131,28 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: '700',
+  },
+  filters: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 4,
+  },
+  chip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+  },
+  chipSelected: {
+    backgroundColor: '#111827',
+    borderColor: '#111827',
+  },
+  chipText: {
+    color: '#374151',
+  },
+  chipTextSelected: {
+    color: '#fff',
   },
   list: {
     gap: 8,

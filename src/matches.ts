@@ -37,6 +37,30 @@ export async function fetchMatches(): Promise<Match[]> {
   return data.matches;
 }
 
+export type MatchFilter = 'all' | 'upcoming' | 'finished';
+
+export const FILTERS: { value: MatchFilter; label: string }[] = [
+  { value: 'all', label: 'Все' },
+  { value: 'upcoming', label: 'Предстоящие' },
+  { value: 'finished', label: 'Завершённые' },
+];
+
+// «Предстоящие» = ещё не сыгранные до конца: запланированные, идущие (счёт
+// может измениться) и перенесённые (будут сыграны позже).
+// Неизвестные статусы попадают только во «Все» — не угадываем, но и не теряем.
+const UPCOMING_STATUSES: MatchStatus[] = ['scheduled', 'live', 'postponed'];
+
+export function matchesFilter(match: Match, filter: MatchFilter): boolean {
+  switch (filter) {
+    case 'all':
+      return true;
+    case 'upcoming':
+      return UPCOMING_STATUSES.includes(match.status);
+    case 'finished':
+      return match.status === 'finished';
+  }
+}
+
 export function statusLabel(match: Match): string {
   switch (match.status) {
     case 'scheduled':
